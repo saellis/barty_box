@@ -1,0 +1,44 @@
+body {
+    background: #532f8c;
+    background-color: #532f8c
+}
+
+.info {
+    background: #532f8c;
+    color: white;
+    padding-bottom: 80px;
+    padding-top: 40px
+}
+
+.info .btn-primary {
+    background: #845ac7;
+    border-color: #845ac7
+}
+.info .btn-primary:hover {
+    background: #7646c1
+}
+.info p {
+    color: #d9ccee;
+    max-width: 75%;
+    margin: 1em auto 2em
+}
+.navbar+.info {
+    margin-top: -20px
+}
+.info .lang-logo {
+    display: block;
+    background: #b01302;
+    border-radius: 50%;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+    margin: auto;
+    border: 2px solid white
+}
+.info .lang-logo img {
+    max-width: 100%
+}
+
+.car-logo {
+    margin-top:30px
+}

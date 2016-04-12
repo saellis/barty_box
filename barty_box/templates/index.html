@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block content %}
+
+<div class="info text-center">
+  <div class="container">
+    <a href="/" class="lang-logo">
+      <img class = "car-logo" src="{% static './img/barty-logo.gif'%}" style = "margin-top:30px">
+    </a>
+    <h1>Barty Box</h1>
+    <p>Find a ride to a random top-rated bar in your area.</p>
+    <a type="button" class="btn btn-lg btn-default" href=""><span class="glyphicon glyphicon-flash"></span> Find Bar</a>
+  </div>
+</div>
+
+{% endblock %}
