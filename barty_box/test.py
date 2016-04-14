@@ -17,7 +17,7 @@ class UberRide(object):
         self.redirect_url = 'https://bartybox.herokuapp.com/'
         self.auth_flow = AuthorizationCodeGrant(
             self.config['uber']['client_id'],
-            ['profile'],  # permission scopes (Allow App 'Barty Box' access to your...?)
+            ['request'],  # permission scopes (Allow App 'Barty Box' access to your...?)
             self.config['uber']['client_secret'],
             self.redirect_url,  # redirect URL must match that on our Uber API account
             # As the name implies, it takes the user to this URL after they are authenticated by Uber
@@ -53,12 +53,8 @@ class UberRide(object):
             'refresh_token': credential.refresh_token,
         }
         client = UberRidesClient(session, sandbox_mode=True)  # change this eventually
-        resp = client.get_user_profile()
-        prof = resp.json
-        first_name = prof.get('first_name')
-        print 'hello, {}'.format(first_name)
 
-        response = client.request_ride(  # weird error here...
+        response = client.request_ride(
             product_id=self.product_id,
             start_latitude=self.st_lat,
             start_longitude=self.st_lon,
@@ -66,7 +62,6 @@ class UberRide(object):
             end_longitude=dest_longitude,
         )
         ride_details = response.json
-        # ride_id = ride_details.get('request_id')
         return ride_details
 
     def _get_product_id(self):
