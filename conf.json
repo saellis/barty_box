@@ -1,0 +1,13 @@
+{
+    "yelp": {
+        "consumer_key": "26yxKnZVb-c40zmXTsjFkw",
+        "consumer_secret": "voc45jPfevRhjsn7tYDBIO8k-FE",
+        "token": "HmfSZjobAd9MJlDmPdlzw1YctG_gDimI",
+        "token_secret": "e9CNAnhsJDONZUTTOI9bT4vHT3Y"
+    },
+    "uber": {
+        "client_id": "9tMNhw2HjBtO0QlCLLsWUGcANSzHRB5V",
+        "client_secret": "WxXgmSeYXH7oRQ6-Us0vKGJLsXjtmlNxt-wxNdyP",
+        "server_token": "_XswilzLNSeSupO-y_Xdv8Ujch-EBk87aNYL48GR"
+    }
+}
