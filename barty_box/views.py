@@ -1,68 +1,113 @@
 import json
-import random
-import requests
-# from .models import Greeting
-from yelp.client import Client
 from django.shortcuts import render
 from django.http import HttpResponse
-from yelp.oauth1_authenticator import Oauth1Authenticator
+from uber_rides.client import UberRidesClient
+from uber_utils import get_auth_flow, get_product_id, get_auth_url, request_ride, get_ride_details
+from yelp_utils import get_random_bar_coords
+try:
+    from urllib.parse import parse_qs
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import parse_qs
+    from urlparse import urlparse
 
+from .models import Greeting
+
+auth_flow = None  # i hate myself
+session = None  # i hate myself
+req_info = {}
+result = None
 
 def index(request):
     return render(request, 'index.html')
 
 
-def _get_bar_coords(lat, lon, radius):
-    mpm = 1609.34  # meters per mile
-    config = json.load(open('../conf.json', 'rb'))
+def auth_url(request):
+    config = json.load(open('conf.json', 'rb'))
+    global auth_flow  # i hate myself
+    auth_flow = get_auth_flow(config)
+    url = get_auth_url(auth_flow)
+    return HttpResponse(json.dumps({'auth_url': url}), content_type='application/json')
 
-    auth = Oauth1Authenticator(
-        consumer_key=config['yelp']['consumer_key'],
-        consumer_secret=config['yelp']['consumer_secret'],
-        token=config['yelp']['token'],
-        token_secret=config['yelp']['token_secret']
-    )
-    client = Client(auth)
 
-    param_offset = lambda x: {
-        'term': 'bars, All',
-        'lang': 'en',
-        'sort': 2,  # 2: only the top rated in the area
-        'radius_filter': int(radius * mpm),
-        'offset': x
+def get_ride_update(request):
+    url = request.get_raw_uri()
+    querystring = urlparse(url).query
+    params = parse_qs(querystring)
+    global session  # i hate myself
+    # client = UberRidesClient(session, sandbox_mode=True)
+    client = UberRidesClient(session)
+    result = get_ride_details(client, params.get('ride_id')[0])
+    return HttpResponse(json.dumps(result), content_type='application/json')
+
+
+def get_ride_request(request):
+    global result
+    return HttpResponse(json.dumps(result), content_type='application/json')
+
+
+def surge_accept(request):
+    url = request.get_raw_uri()
+    querystring = urlparse(url).query
+    params = parse_qs(querystring)
+    global req_info
+    global session  # i hate myself
+
+    # client = UberRidesClient(session, sandbox_mode=True)
+    client = UberRidesClient(session)
+    global result
+    result = request_ride(client, req_info['pid'], req_info['st_lat'], req_info['st_lon'],
+                          req_info['dest_lat'], req_info['dest_lon'], params.get('surge_confirmation_id')[0])
+
+    return render(request, 'wait.html')
+
+
+def caller(request):
+    url = request.get_raw_uri()
+    querystring = urlparse(url).query
+    params = parse_qs(querystring)
+
+
+    st_lat = params.get('latitude')[0]
+    st_lon = params.get('longitude')[0]
+    authorized_url = params.get('url')[0]
+    radius = int(params.get('radius')[0])
+    product = params.get('product')[0]
+    config = json.load(open('conf.json', 'rb'))
+    # auth_flow = get_auth_flow(config)
+    global auth_flow  # i hate myself
+    pid = get_product_id(config, st_lat, st_lon, product)
+    global session  # i hate myself
+    session = auth_flow.get_session(authorized_url)
+    credential = session.oauth2credential
+    credential_data = {
+        'client_id': credential.client_id,
+        'redirect_url': credential.redirect_url,
+        'access_token': credential.access_token,
+        'expires_in_seconds': credential.expires_in_seconds,
+        'scopes': list(credential.scopes),
+        'grant_type': credential.grant_type,
+        'client_secret': credential.client_secret,
+        'refresh_token': credential.refresh_token,
     }
+    # client = UberRidesClient(session, sandbox_mode=True)
+    client = UberRidesClient(session)
+    dest_lat, dest_lon = get_random_bar_coords(st_lat, st_lon, radius)
 
-    bus_list = []
-    for offset in [0, 20]:
-        response = client.search_by_coordinates(lat, lon, **param_offset(offset))
-        bus_list.extend(response.businesses)
-
-    bar = random.choice(bus_list)
-    while bar.name in ["Peter's Pub", "Hemingway's Cafe"]:  # Can we just
-        bar = random.choice(bus_list)
-    return bar.location.coordinate.latitude, bar.location.coordinate.longitude
-
-def _call_uber(dest_lat, dest_lon):
-    base_url = 'https://sandbox-api.uber.com/v1'
-    requests.post()
-
-def ride(request):
-    """ Finds a bar within a certain radius of the user, and calls an uber from user's location to bar location.
-        Eventually return something like.. time to arrival? type of car? etc.
-    """
-    latitude = request.get('latitude', 40.4443533)  # defaults to somewhere near pittsburgh
-    longitude = request.get('longitude', -79.96083499999997)
-    radius = request.get('radius', 3)  # default to a 3 mile search radius
-    bar_lat, bar_lon = _get_bar_coords(latitude, longitude, radius)
-    resp = _call_uber(bar_lat, bar_lon)
-    # parse response here
-
-    # return HttpResponse(json.dumps(result), content_type='application/json')  # return response
+    # update_surge(client, pid, 1.0)  ### try out surge pricing
+    result = request_ride(client, pid, st_lat, st_lon, dest_lat, dest_lon)
+    global req_info
+    req_info['st_lat'] = st_lat
+    req_info['st_lon'] = st_lon
+    req_info['pid'] = pid
+    req_info['dest_lat'] = dest_lat
+    req_info['dest_lon'] = dest_lon
+    return HttpResponse(json.dumps(result), content_type='application/json')
 
 
-if __name__ == '__main__':
-    print ride({
-        'latitude': 40.4443533,
-        'longitude': -79.96083499999997,
-        'radius': 5
-    })
+def wait(request):
+    return render(request, 'wait.html')
+
+
+def ride_finder(request):
+    return render(None, 'ride_finder.html')
